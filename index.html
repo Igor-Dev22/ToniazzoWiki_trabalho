@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dicionário de Engenharia de Software</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="app-layout">
+        
+        <nav class="main-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-book-open logo-icon-menu"></i>
+                <h2>ToniazzoWiki</h2>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item active" data-target="view-main" data-mode="categories">
+                    <i class="fas fa-tags"></i> Categorias
+                </li>
+                <li class="nav-item" data-target="view-main" data-mode="az">
+                    <i class="fas fa-sort-alpha-down"></i> Dicionário A-Z
+                </li>
+                <li class="nav-item" data-target="view-stats">
+                    <i class="fas fa-chart-line"></i> Estatísticas
+                </li>
+                <li class="nav-item" data-target="view-login">
+                    <i class="fas fa-user-circle"></i> Login
+                </li>
+            </ul>
+        </nav>
+
+        <div class="app-content">
+            <header>
+                <div class="header-text">
+                    <h1>Engenharia de Software</h1>
+                    <p>Navegue pelas categorias ou ative o dicionário para filtrar por letras.</p>
+                </div>
+            </header>
+
+            <div id="view-main" class="view-section active">
+                
+                <div class="search-container shadow-card">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Pesquisar termos...">
+                </div>
+
+                <div class="filter-panel shadow-card">
+                    <h3>Filtrar por Categoria</h3>
+                    <div class="filter-group" id="category-filters">
+                        <button class="filter-pill active" data-filter="Todos">Todos</button>
+                        <button class="filter-pill" data-filter="Metodologias">Metodologias</button>
+                        <button class="filter-pill" data-filter="Arquitetura">Arquitetura</button>
+                        <button class="filter-pill" data-filter="Programação">Programação</button>
+                        <button class="filter-pill" data-filter="Testes">Testes</button>
+                        <button class="filter-pill" data-filter="DevOps">DevOps</button>
+                        <button class="filter-pill" data-filter="Banco de Dados">Banco de Dados</button>
+                        <button class="filter-pill" data-filter="Design Patterns">Design Patterns</button>
+                    </div>
+                </div>
+
+                <div class="main-layout">
+                    <aside class="sidebar-left" id="az-sidebar">
+                        <div class="filter-panel shadow-card sticky-panel">
+                            <h3 style="text-align: center;">A-Z</h3>
+                            <div class="filter-group alphabet-group" id="alphabet-filters">
+                                <button class="filter-pill active" data-filter="Todas">Todas</button>
+                                </div>
+                        </div>
+                    </aside>
+
+                    <div class="content-main">
+                        <div class="results-meta">
+                            <span id="terms-count">0 termos encontrados</span>
+                            <button id="clear-btn" class="clear-btn">
+                                <i class="fas fa-eraser"></i> Limpar Filtros
+                            </button>
+                        </div>
+
+                        <main>
+                            <div class="terms-grid" id="terms-container">
+                                </div>
+                        </main>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-stats" class="view-section">
+                <div class="shadow-card stat-card">
+                    <h2><i class="fas fa-fire" style="color: #e74c3c;"></i> Tópicos Mais Acessados</h2>
+                    <p class="text-muted" style="margin-bottom: 20px;">Termos mais buscados pelos usuários nesta semana.</p>
+                    <div class="stats-list" id="stats-container"></div>
+                </div>
+            </div>
+
+            <div id="view-login" class="view-section">
+                <div class="login-wrapper">
+                    <div class="shadow-card login-card">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <i class="fas fa-user-circle" style="font-size: 3rem; color: var(--primary-color);"></i>
+                            <h2>Acesse sua Conta</h2>
+                        </div>
+                        <form id="login-form">
+                            <div class="input-group">
+                                <label for="email">E-mail</label>
+                                <input type="email" id="email" placeholder="seu@email.com" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="password">Senha</label>
+                                <input type="password" id="password" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Entrar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div> 
+    </div> 
+
+    <script src="script.js"></script>
+</body>
+</html>
