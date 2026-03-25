@@ -1,125 +1,119 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dicionário de Engenharia de Software</title>
+    <title>LogicaLis | Dicionário</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
     <div class="app-layout">
-        
-        <nav class="main-sidebar">
+        <nav class="main-sidebar" id="sidebar">
             <div class="sidebar-header">
                 <i class="fas fa-book-open logo-icon-menu"></i>
-                <h2>ToniazzoWiki</h2>
+                <h2>LogicaLis</h2>
             </div>
-            
             <ul class="nav-menu">
-                <li class="nav-item active" data-target="view-main" data-mode="categories">
-                    <i class="fas fa-tags"></i> Categorias
+                <li class="nav-item active" id="nav-dictionary">
+                    <i class="fas fa-home"></i> Dicionário
                 </li>
-                <li class="nav-item" data-target="view-main" data-mode="az">
-                    <i class="fas fa-sort-alpha-down"></i> Dicionário A-Z
-                </li>
-                <li class="nav-item" data-target="view-stats">
-                    <i class="fas fa-chart-line"></i> Estatísticas
-                </li>
-                <li class="nav-item" data-target="view-login">
-                    <i class="fas fa-user-circle"></i> Login
+                <li class="nav-item" id="nav-favorites">
+                    <i class="fas fa-star"></i> Meus Favoritos
                 </li>
             </ul>
         </nav>
 
         <div class="app-content">
-            <header>
-                <div class="header-text">
-                    <h1>Engenharia de Software</h1>
-                    <p>Navegue pelas categorias ou ative o dicionário para filtrar por letras.</p>
+            <header class="main-header">
+                <div class="header-left">
+                    <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Ocultar/Mostrar Menu">
+                        <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                    </button>
+                    <div>
+                        <h1>Engenharia de Software</h1>
+                        <p>Use o índice A-Z e clique nos cards para ver as definições.</p>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <button id="dark-mode-toggle" class="btn-icon" title="Alternar Modo Escuro" aria-label="Modo Escuro">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="btn-add-term" class="btn-primary" aria-label="Adicionar Termo">
+                        <i class="fas fa-plus"></i> Novo Termo
+                    </button>
                 </div>
             </header>
 
             <div id="view-main" class="view-section active">
-                
                 <div class="search-container shadow-card">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Pesquisar termos...">
+                    <input type="text" id="search-input" placeholder="Pesquisar termo..." aria-label="Pesquisar termo">
                 </div>
 
                 <div class="filter-panel shadow-card">
-                    <h3>Filtrar por Categoria</h3>
-                    <div class="filter-group" id="category-filters">
-                        <button class="filter-pill active" data-filter="Todos">Todos</button>
-                        <button class="filter-pill" data-filter="Metodologias">Metodologias</button>
-                        <button class="filter-pill" data-filter="Arquitetura">Arquitetura</button>
-                        <button class="filter-pill" data-filter="Programação">Programação</button>
-                        <button class="filter-pill" data-filter="Testes">Testes</button>
-                        <button class="filter-pill" data-filter="DevOps">DevOps</button>
-                        <button class="filter-pill" data-filter="Banco de Dados">Banco de Dados</button>
-                        <button class="filter-pill" data-filter="Design Patterns">Design Patterns</button>
+                    <div class="filter-header">
+                        <h3>Índice e Filtros</h3>
+                        <div class="filter-actions-right">
+                            <select id="sort-select" class="form-input sort-select" aria-label="Ordenar por">
+                                <option value="az">Ordem Alfabética (A-Z)</option>
+                                <option value="recent">Mais Recentes</option>
+                                <option value="views">Mais Visualizados</option>
+                            </select>
+                            <button id="clear-btn" class="clear-btn">Limpar Filtros</button>
+                        </div>
+                    </div>
+                    <div class="filter-group" id="alphabet-filters">
+                        <button class="filter-pill active" id="btn-todas" data-filter="Todas">Todas</button>
                     </div>
                 </div>
 
-                <div class="main-layout">
-                    <aside class="sidebar-left" id="az-sidebar">
-                        <div class="filter-panel shadow-card sticky-panel">
-                            <h3 style="text-align: center;">A-Z</h3>
-                            <div class="filter-group alphabet-group" id="alphabet-filters">
-                                <button class="filter-pill active" data-filter="Todas">Todas</button>
-                                </div>
-                        </div>
-                    </aside>
-
-                    <div class="content-main">
-                        <div class="results-meta">
-                            <span id="terms-count">0 termos encontrados</span>
-                            <button id="clear-btn" class="clear-btn">
-                                <i class="fas fa-eraser"></i> Limpar Filtros
-                            </button>
-                        </div>
-
-                        <main>
-                            <div class="terms-grid" id="terms-container">
-                                </div>
-                        </main>
-                    </div>
+                <div class="results-meta">
+                    <span id="terms-count">0 termos encontrados</span>
                 </div>
+
+                <div id="empty-state" class="empty-state">
+                    <i class="fas fa-search-minus empty-icon"></i>
+                    <h2>Nenhum termo encontrado</h2>
+                    <p>Não encontramos nada com a sua busca atual. Que tal cadastrar este termo?</p>
+                    <button class="btn-primary" id="btn-empty-add" style="margin-top: 15px;"><i class="fas fa-plus"></i> Adicionar Termo</button>
+                </div>
+
+                <div class="terms-grid" id="terms-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-content shadow-card">
+            <span class="close-button" tabindex="0" aria-label="Fechar">&times;</span>
+            
+            <div class="modal-actions" style="position: absolute; right: 60px; top: 20px; display: flex; gap: 10px;">
+                <button id="btn-edit-term" class="btn-icon-small" title="Editar"><i class="fas fa-edit"></i></button>
+                <button id="btn-delete-term" class="btn-icon-small danger" title="Excluir"><i class="fas fa-trash"></i></button>
             </div>
 
-            <div id="view-stats" class="view-section">
-                <div class="shadow-card stat-card">
-                    <h2><i class="fas fa-fire" style="color: #e74c3c;"></i> Tópicos Mais Acessados</h2>
-                    <p class="text-muted" style="margin-bottom: 20px;">Termos mais buscados pelos usuários nesta semana.</p>
-                    <div class="stats-list" id="stats-container"></div>
-                </div>
-            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
 
-            <div id="view-login" class="view-section">
-                <div class="login-wrapper">
-                    <div class="shadow-card login-card">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <i class="fas fa-user-circle" style="font-size: 3rem; color: var(--primary-color);"></i>
-                            <h2>Acesse sua Conta</h2>
-                        </div>
-                        <form id="login-form">
-                            <div class="input-group">
-                                <label for="email">E-mail</label>
-                                <input type="email" id="email" placeholder="seu@email.com" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="password">Senha</label>
-                                <input type="password" id="password" placeholder="••••••••" required>
-                            </div>
-                            <button type="submit" class="btn-primary">Entrar</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+    <div id="form-modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-content shadow-card">
+            <span class="close-form-button" tabindex="0" aria-label="Fechar">&times;</span>
+            <h2 id="form-modal-title" style="color:var(--primary-color); margin-bottom:20px">Adicionar Novo Termo</h2>
+            <form id="term-form">
+                <input type="hidden" id="term-id">
+                <input type="text" id="term-name" placeholder="Nome do Termo (Ex: React)" required class="form-input">
+                <textarea id="term-desc" placeholder="Digite a descrição detalhada do termo..." required class="form-input" rows="4"></textarea>
+                <input type="url" id="term-link" placeholder="Link de Referência (Opcional)" class="form-input">
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">Salvar</button>
+            </form>
+        </div>
+    </div>
 
-        </div> 
-    </div> 
+    <div id="toast-container"></div>
 
     <script src="script.js"></script>
 </body>
