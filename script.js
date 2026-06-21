@@ -1,4 +1,4 @@
-// Dados iniciais ricos em Engenharia de Software
+// DADOS INICIAIS (sem alteração em relação ao projeto original)
 const defaultData = [
     { id: "1", term: "Agile", desc: "Metodologia de desenvolvimento que foca em entregas rápidas, iterativas e colaboração contínua entre equipas. Prioriza a adaptação à mudança.", link: "https://pt.wikipedia.org/wiki/Desenvolvimento_%C3%A1gil_de_software", views: 1450, isFav: false, timestamp: 1600000001000 },
     { id: "2", term: "API (Application Programming Interface)", desc: "Conjunto de regras e protocolos que permite que diferentes sistemas e aplicações comuniquem entre si de forma padronizada.", link: "https://aws.amazon.com/pt/what-is/api/", views: 2340, isFav: true, timestamp: 1600000002000 },
@@ -22,230 +22,282 @@ const defaultData = [
     { id: "20", term: "UML (Unified Modeling Language)", desc: "Linguagem visual padronizada utilizada para desenhar e modelar a arquitetura, desenho e implementação de sistemas de software complexos.", link: "https://pt.wikipedia.org/wiki/UML", views: 850, isFav: false, timestamp: 1600000020000 }
 ];
 
-// Alterado para _v2 para forçar o carregamento dos novos termos do defaultData
-let dictionaryData = JSON.parse(localStorage.getItem('toniazzoWikiData_v2'));
-if (!dictionaryData || dictionaryData.length === 0) {
-    dictionaryData = defaultData;
-    saveData();
+// PADRÃO SINGLETON — DictionaryRepository
+class DictionaryRepository {
+    constructor() {
+        if (DictionaryRepository._instance) {
+            return DictionaryRepository._instance;
+        }
+        this._storageKey = 'toniazzoWikiData_v2';
+        DictionaryRepository._instance = this;
+    }
+
+    static getInstance() {
+        if (!DictionaryRepository._instance) {
+            DictionaryRepository._instance = new DictionaryRepository();
+        }
+        return DictionaryRepository._instance;
+    }
+
+    load() {
+        const stored = JSON.parse(localStorage.getItem(this._storageKey));
+        if (!stored || stored.length === 0) {
+            this.save(defaultData);
+            return defaultData;
+        }
+        return stored;
+    }
+
+    save(data) {
+        localStorage.setItem(this._storageKey, JSON.stringify(data));
+    }
 }
 
-// Variáveis de Estado
-let activeLetter = "Todas";
-let viewMode = "dictionary"; 
-let currentTermId = null; 
+// PADRÃO STRATEGY — ordenação intercambiável
+class SortStrategy {
+    sort(terms) {
+        throw new Error('O método sort() deve ser implementado pela subclasse.');
+    }
+}
 
-// Elementos DOM principais
-const container = document.getElementById('terms-container');
+class AZSortStrategy extends SortStrategy {
+    sort(terms) {
+        return [...terms].sort((a, b) => a.term.localeCompare(b.term));
+    }
+}
+
+class RecentSortStrategy extends SortStrategy {
+    sort(terms) {
+        return [...terms].sort((a, b) => b.timestamp - a.timestamp);
+    }
+}
+
+class ViewsSortStrategy extends SortStrategy {
+    sort(terms) {
+        return [...terms].sort((a, b) => b.views - a.views);
+    }
+}
+
+const sortStrategies = {
+    az: new AZSortStrategy(),
+    recent: new RecentSortStrategy(),
+    views: new ViewsSortStrategy()
+};
+
+// ESTADO DA APLICAÇÃO
+const repository = DictionaryRepository.getInstance();
+let dictionaryData = repository.load();
+let currentTermId = null;
+
+// Elementos principais
+const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
-const alphabetContainer = document.getElementById('alphabet-filters');
-const sortSelect = document.getElementById('sort-select');
-const emptyState = document.getElementById('empty-state');
-const termsCount = document.getElementById('terms-count');
+const searchEmpty = document.getElementById('search-empty');
+const recentSidebar = document.getElementById('recent-sidebar');
+const recentGroups = document.getElementById('recent-groups');
 
-// Elementos de Layout
-const sidebar = document.getElementById('sidebar');
-const body = document.body;
-const darkModeToggle = document.getElementById('dark-mode-toggle');
+// Elementos de navegação entre telas
+const viewSearch = document.getElementById('view-search');
+const viewFavorites = document.getElementById('view-favorites');
+const favoritesList = document.getElementById('favorites-list');
+const favoritesEmpty = document.getElementById('favorites-empty');
+const termsCounter = document.getElementById('terms-counter');
 
 // Elementos Modais
 const viewModal = document.getElementById('modal-overlay');
 const formModal = document.getElementById('form-modal-overlay');
 
-// --- INICIALIZAÇÃO DE TEMA (DARK MODE) ---
-const savedTheme = localStorage.getItem('toniazzoTheme') || 'light';
-body.setAttribute('data-theme', savedTheme);
-updateDarkModeIcon(savedTheme);
-
-darkModeToggle.onclick = () => {
-    const currentTheme = body.getAttribute('data-theme');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    body.setAttribute('data-theme', newTheme);
-    localStorage.setItem('toniazzoTheme', newTheme);
-    updateDarkModeIcon(newTheme);
-    showToast(`Modo ${newTheme === 'dark' ? 'Escuro' : 'Claro'} ativado!`, 'success');
-};
-
-function updateDarkModeIcon(theme) {
-    darkModeToggle.innerHTML = theme === 'light' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-}
-
-// --- UTILITÁRIOS ---
+//UTILITÁRIOS
 function saveData() {
-    localStorage.setItem('toniazzoWikiData_v2', JSON.stringify(dictionaryData));
+    repository.save(dictionaryData);
 }
 
 function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
     toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
-    
+
     toastContainer.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.classList.add('fade-out');
         toast.addEventListener('animationend', () => toast.remove());
     }, 3000);
 }
 
-// --- NAVEGAÇÃO E MENUS ---
-document.getElementById('sidebar-toggle').onclick = () => {
-    sidebar.classList.toggle('collapsed');
-    const icon = document.getElementById('toggle-icon');
-    icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
-};
-
-document.getElementById('nav-dictionary').onclick = function() {
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    this.classList.add('active');
-    viewMode = "dictionary";
-    applyFilters();
-};
-
-document.getElementById('nav-favorites').onclick = function() {
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    this.classList.add('active');
-    viewMode = "favorites";
-    applyFilters();
-};
-
-// --- FILTROS E ALFABETO ---
-document.getElementById('btn-todas').onclick = (e) => setActiveLetter(e.target, "Todas");
-
-'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
-    const btn = document.createElement('button');
-    btn.className = 'filter-pill';
-    btn.textContent = l;
-    btn.onclick = (e) => setActiveLetter(e.target, l);
-    alphabetContainer.appendChild(btn);
-});
-
-function setActiveLetter(btnElement, letter) {
-    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
-    if(btnElement) btnElement.classList.add('active');
-    activeLetter = letter;
-    applyFilters();
+function findTermByName(name) {
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) return null;
+    return dictionaryData.find(item => item.term.toLowerCase() === normalized)
+        || dictionaryData.find(item => item.term.toLowerCase().includes(normalized));
 }
 
-searchInput.addEventListener('input', applyFilters);
-sortSelect.addEventListener('change', applyFilters);
+//NAVEGAÇÃO ENTRE TELAS
+function showSearchScreen() {
+    viewFavorites.classList.remove('active');
+    viewSearch.classList.add('active');
+    renderRecentSidebar();
+}
 
-document.getElementById('clear-btn').onclick = () => {
-    searchInput.value = '';
-    sortSelect.value = 'az';
-    setActiveLetter(document.getElementById('btn-todas'), "Todas");
-};
+function showFavoritesScreen() {
+    viewSearch.classList.remove('active');
+    viewFavorites.classList.add('active');
+    renderFavoritesList();
+}
 
-// --- RENDERIZAÇÃO E LÓGICA DE LISTAGEM ---
-function applyFilters() {
-    const search = searchInput.value.toLowerCase();
-    const sortValue = sortSelect.value;
-    
-    let filtered = dictionaryData.filter(item => {
-        const matchesSearch = item.term.toLowerCase().includes(search) || item.desc.toLowerCase().includes(search);
-        const matchesLetter = activeLetter === "Todas" || item.term.toUpperCase().startsWith(activeLetter);
-        const matchesViewMode = viewMode === "dictionary" || (viewMode === "favorites" && item.isFav);
-        
-        return matchesSearch && matchesLetter && matchesViewMode;
+document.getElementById('nav-favorites').onclick = showFavoritesScreen;
+document.getElementById('btn-back-from-favorites').onclick = showSearchScreen;
+
+//LATERAL "TODOS OS TERMOS
+function renderRecentSidebar() {
+    const sorted = sortStrategies.az.sort(dictionaryData);
+
+    const groups = {};
+    sorted.forEach(item => {
+        const letter = item.term.charAt(0).toUpperCase();
+        if (!groups[letter]) groups[letter] = [];
+        groups[letter].push(item);
     });
 
-    // Ordenação Inteligente
-    if (sortValue === 'az') {
-        filtered.sort((a, b) => a.term.localeCompare(b.term));
-    } else if (sortValue === 'recent') {
-        filtered.sort((a, b) => b.timestamp - a.timestamp); 
-    } else if (sortValue === 'views') {
-        filtered.sort((a, b) => b.views - a.views); 
-    }
+    recentGroups.innerHTML = '';
+    Object.keys(groups).sort().forEach(letter => {
+        const groupEl = document.createElement('div');
 
-    render(filtered);
-}
+        const letterEl = document.createElement('div');
+        letterEl.className = 'recent-group-letter';
+        letterEl.textContent = letter;
+        groupEl.appendChild(letterEl);
 
-function render(data) {
-    container.innerHTML = '';
-    termsCount.textContent = `${data.length} termos encontrados`;
-    
-    if (data.length === 0) {
-        emptyState.style.display = 'block';
-    } else {
-        emptyState.style.display = 'none';
-        
-        data.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'term-card shadow-card';
-            card.tabIndex = 0; 
-            
-            const favIcon = item.isFav ? 'fas fa-star active' : 'far fa-star';
-            
-            card.innerHTML = `
-                <h2>
-                    ${item.term} 
-                    <button class="fav-btn ${item.isFav ? 'active' : ''}" data-id="${item.id}" title="Favoritar" aria-label="Favoritar">
-                        <i class="${favIcon}"></i>
-                    </button>
-                </h2>
-                <p class="preview">${item.desc}</p>
-                <span class="hint">Clique para expandir <i class="fas fa-arrow-right" style="font-size:0.8em"></i></span>
-            `;
-            
-            const openView = (e) => {
-                if(e.target.closest('.fav-btn')) return; 
-                openTermView(item);
-            };
-            
-            card.onclick = openView;
-            card.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openView(e); } };
-            
-            const btnFav = card.querySelector('.fav-btn');
-            btnFav.onclick = (e) => {
-                item.isFav = !item.isFav;
-                saveData();
-                applyFilters(); 
-                const msg = item.isFav ? 'Adicionado aos favoritos' : 'Removido dos favoritos';
-                showToast(msg, 'success');
-            };
-
-            container.appendChild(card);
+        const ul = document.createElement('ul');
+        ul.className = 'recent-group-items';
+        groups[letter].forEach(item => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = item.term;
+            btn.onclick = () => openTermView(item);
+            li.appendChild(btn);
+            ul.appendChild(li);
         });
-    }
+        groupEl.appendChild(ul);
+
+        recentGroups.appendChild(groupEl);
+    });
+
+    renderTermsCounter();
 }
 
-// --- VISUALIZAÇÃO DE TERMO ---
+function renderTermsCounter() {
+    const total = dictionaryData.length;
+    termsCounter.textContent = `${total} termo${total === 1 ? '' : 's'} cadastrado${total === 1 ? '' : 's'}`;
+}
+
+//LISTA DE FAVORITOS
+function renderFavoritesList() {
+    const favorites = dictionaryData.filter(item => item.isFav);
+    const sorted = sortStrategies.az.sort(favorites);
+
+    favoritesList.innerHTML = '';
+
+    if (sorted.length === 0) {
+        favoritesEmpty.classList.add('visible');
+        return;
+    }
+    favoritesEmpty.classList.remove('visible');
+
+    sorted.forEach(item => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = `
+            <span><i class="fas fa-star fav-star"></i> ${item.term}</span>
+        `;
+        btn.onclick = () => openTermView(item);
+        li.appendChild(btn);
+        favoritesList.appendChild(li);
+    });
+}
+
+//BUSCA: leva direto ao modal de detalhes do termo
+searchForm.onsubmit = (e) => {
+    e.preventDefault();
+    const query = searchInput.value;
+    const found = findTermByName(query);
+
+    if (found) {
+        searchEmpty.classList.remove('visible');
+        openTermView(found);
+    } else {
+        searchEmpty.classList.add('visible');
+    }
+};
+
+searchInput.addEventListener('input', () => {
+    if (searchEmpty.classList.contains('visible')) {
+        searchEmpty.classList.remove('visible');
+    }
+});
+
+//VISUALIZAÇÃO DE TERMO
 function openTermView(item) {
     currentTermId = item.id;
-    
+
     item.views += 1;
     saveData();
 
-    const linkHtml = item.link ? 
-        `<a href="${item.link}" target="_blank" style="color:var(--primary-color); text-decoration:none; display:inline-flex; align-items:center; gap:5px; margin-top:20px; font-weight:600;"><i class="fas fa-external-link-alt"></i> Ver documentação externa</a>` : '';
+    const isFav = item.isFav;
+    const hasLink = !!item.link;
 
     document.getElementById('modal-body').innerHTML = `
-        <h1 style="color:var(--primary-color); margin-bottom:15px; padding-right: 80px;">${item.term}</h1>
-        <p style="line-height:1.6; font-size:1.1rem; color:var(--text-main)">${item.desc}</p>
-        ${linkHtml}
-        <div style="margin-top:25px; padding-top:15px; border-top:1px solid var(--border-color); text-align:right">
-            <small style="color:var(--text-muted)"><i class="fas fa-eye"></i> Visualizações: ${item.views}</small>
+        <span class="term-tag">Termo</span>
+        <h1 class="term-modal-title">${item.term}</h1>
+        <p class="term-modal-desc">${item.desc}</p>
+        <div class="term-actions-row">
+            <button id="btn-toggle-fav" class="term-action-btn ${isFav ? 'is-fav' : ''}">
+                <i class="${isFav ? 'fas' : 'far'} fa-star"></i> Favoritar
+            </button>
+            <button id="btn-open-link" class="term-action-btn" ${hasLink ? '' : 'disabled'}>
+                <i class="fas fa-external-link-alt"></i> Fonte
+            </button>
+        </div>
+        <div class="term-modal-footer">
+            <span class="term-views"><i class="fas fa-eye"></i> ${item.views} visualizações</span>
+            <div class="term-footer-icons">
+                <button id="btn-edit-term" title="Editar"><i class="fas fa-edit"></i></button>
+                <button id="btn-delete-term" class="danger" title="Excluir"><i class="fas fa-trash"></i></button>
+            </div>
         </div>
     `;
-    
+
+    document.getElementById('btn-toggle-fav').onclick = () => {
+        item.isFav = !item.isFav;
+        saveData();
+        const msg = item.isFav ? 'Adicionado aos favoritos' : 'Removido dos favoritos';
+        showToast(msg, 'success');
+        openTermView(item);
+    };
+
+    if (hasLink) {
+        document.getElementById('btn-open-link').onclick = () => window.open(item.link, '_blank');
+    }
+
+    document.getElementById('btn-edit-term').onclick = () => openFormModal(item);
+    document.getElementById('btn-delete-term').onclick = () => handleDeleteTerm();
+
     viewModal.style.display = 'flex';
-    viewModal.querySelector('.close-button').focus(); 
+    viewModal.querySelector('.close-button').focus();
 }
 
-// --- CRUD: CRIAR, ATUALIZAR E DELETAR ---
+//CRUD: CRIAR, ATUALIZAR E DELETAR
 document.getElementById('btn-add-term').onclick = () => openFormModal();
-document.getElementById('btn-empty-add').onclick = () => {
-    document.getElementById('term-name').value = searchInput.value; 
-    openFormModal();
-};
 
 function openFormModal(editItem = null) {
     const formTitle = document.getElementById('form-modal-title');
     const form = document.getElementById('term-form');
-    
+
     if (editItem) {
         formTitle.textContent = "Editar Termo";
         document.getElementById('term-id').value = editItem.id;
@@ -257,20 +309,28 @@ function openFormModal(editItem = null) {
         form.reset();
         document.getElementById('term-id').value = "";
     }
-    
-    viewModal.style.display = 'none'; 
+
+    viewModal.style.display = 'none';
     formModal.style.display = 'flex';
     document.getElementById('term-name').focus();
 }
 
+function refreshCurrentScreen() {
+    if (viewFavorites.classList.contains('active')) {
+        renderFavoritesList();
+    } else {
+        renderRecentSidebar();
+    }
+}
+
 document.getElementById('term-form').onsubmit = (e) => {
-    e.preventDefault(); 
-    
+    e.preventDefault();
+
     const id = document.getElementById('term-id').value;
     const name = document.getElementById('term-name').value;
     const desc = document.getElementById('term-desc').value;
     const link = document.getElementById('term-link').value;
-    
+
     if (id) {
         const index = dictionaryData.findIndex(t => t.id === id);
         if (index !== -1) {
@@ -281,7 +341,7 @@ document.getElementById('term-form').onsubmit = (e) => {
         }
     } else {
         dictionaryData.push({
-            id: Date.now().toString(), 
+            id: Date.now().toString(),
             term: name,
             desc: desc,
             link: link,
@@ -290,49 +350,43 @@ document.getElementById('term-form').onsubmit = (e) => {
             timestamp: Date.now()
         });
         showToast('Novo termo adicionado com sucesso!');
-        
-        if(viewMode === 'dictionary'){
-            searchInput.value = '';
-            sortSelect.value = 'recent'; 
-            setActiveLetter(document.getElementById('btn-todas'), "Todas");
-        }
     }
-    
+
     saveData();
     formModal.style.display = 'none';
-    applyFilters();
+    refreshCurrentScreen();
 };
 
-document.getElementById('btn-edit-term').onclick = () => {
-    const item = dictionaryData.find(t => t.id === currentTermId);
-    if(item) openFormModal(item);
-};
-
-document.getElementById('btn-delete-term').onclick = () => {
+function handleDeleteTerm() {
     if (confirm('Tem a certeza que deseja excluir este termo? Esta ação não pode ser desfeita.')) {
         dictionaryData = dictionaryData.filter(t => t.id !== currentTermId);
         saveData();
         viewModal.style.display = 'none';
-        applyFilters();
         showToast('Termo excluído permanentemente.', 'error');
+        refreshCurrentScreen();
     }
-};
+}
 
-// --- CONTROLES DE FECHAMENTO (Modais) ---
-document.querySelector('.close-button').onclick = () => viewModal.style.display = 'none';
+//CONTROLES DE FECHAMENTO (Modais)
+function closeViewModal() {
+    viewModal.style.display = 'none';
+    refreshCurrentScreen();
+}
+
+document.querySelector('.close-button').onclick = closeViewModal;
 document.querySelector('.close-form-button').onclick = () => formModal.style.display = 'none';
 
-window.onclick = (e) => { 
-    if(e.target == viewModal) viewModal.style.display = 'none'; 
-    if(e.target == formModal) formModal.style.display = 'none'; 
+window.onclick = (e) => {
+    if (e.target == viewModal) closeViewModal();
+    if (e.target == formModal) formModal.style.display = 'none';
 };
 
 window.onkeydown = (e) => {
     if (e.key === 'Escape') {
-        viewModal.style.display = 'none';
+        if (viewModal.style.display === 'flex') closeViewModal();
         formModal.style.display = 'none';
     }
 };
 
-// Start
-applyFilters();
+// Lateral de termos visível
+renderRecentSidebar();
